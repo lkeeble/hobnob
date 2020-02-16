@@ -1,0 +1,30 @@
+TODO:
+* Add ability to import a picture and draw over it - see: http://jsfiddle.net/influenztial/qy7h5/  and http://stackoverflow.com/questions/10906734/how-to-upload-image-into-html5-canvas
+* take snapshots of the scribble and save for later - see: http://stackoverflow.com/questions/13198131/how-to-save-a-html5-canvas-as-image-on-a-server
+* export/import snapshots
+* print
+* Include chat window
+  - Allow user to pick their handle
+
+
+IDEAS:
+* consider making "signature" widget
+
+BUGS:
+* When you draw outside the canvas and keep your pen down and come back into the canvas it loses track of the position of the pen. 
+- consider stopping the segment when the user leaves the canvas and that's that (which is what webwhiteboard does).
+* Drawing a single point is not possible, it has to be a line at the moment. Does this matter? 
+
+there are differences between prod and dev.. 
+* on production - extra slashes are inserted into the "data" (json) field in the segments table. There is code to work around this (method begins "adjust..").
+however, this means that a dev database can't be pushed to prod, and vice versa.
+
+* DONE Add support for one user pressing "clear" and the other users' boards all clear.
+* DONE Make back-end messaging more general: Draw, Clear, Chat (for text messages).
+* DONE consider including clear command in the JSON of the draw message itself.. ?
+ "action" : "draw"
+ and 
+ "action" : "chat"
+  
+* DONE, kinda :) - Make cursor change to pen when over the canvas. Works for chrome, not so much for IE
+ 

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+      <title>Breakout</title>
+      <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+
+<script>
+    $(game);
+
+function game()	{
+    "use strict";
+    
+    var debug = true;
+    // this is the same as document.getElementById('canvas');
+    var canvas = $('#canvas')[0];
+    // different browsers support different contexts. All support 2d
+    var context = canvas.getContext('2d');
+    var lives;
+
+    var pause = false;
+    var wonRoundInProgress = false;
+    var eventLoopDelay = 1000/60; // delay in millisecs
+
+    var paddle;
+    var INITIAL_PADDLE_X = 200;
+    var INITIAL_PADDLE_Y= 440;
+    var PADDLE_WIDTH = 100;
+    var PADDLE_HEIGHT = 15;
+    var INITIAL_PADDLE_DX = 0;
+    var PADDLE_SPEED = 10;
+    var INITIAL_PADDLE_MOVE_TYPE = "None";
+    
+    var ball;
+    var INITIAL_BALL_TIME_LEFT_TO_RIGHT = 1.0; // 1 second to go from left to right on screen
+    var timeForOneUpdate = eventLoopDelay / 1000.0; // secs
+    var INITIAL_BALL_ANGLE = -30.0; // degrees
+    
+    var BALL_RADIUS = 10;
+    var INITIAL_BALL_X = 300;
+    var INITIAL_BALL_Y = 200;
+
+    var DEFAULT_FONT = "20px Lucida Console";
+    var DEFAULT_TEXT_COLOR = 'rgb(0,255,0)';
+    context.font = DEFAULT_FONT;
+
+    var BRICK_TOP = 60;
+    var BRICK_COLS = 7;                              
+    var BRICK_ROWS = 3;
+    var BRICK_HEIGHT = 20;
+    var BRICK_WIDTH = canvas.width/BRICK_COLS;
+
+    var score = 0;
+    var level = 0;
+    
+    var message = "";
+    
+    var bouncingSound = new Audio("bounce.ogg");
+    var breakingSound = new Audio("break.ogg");
+    var loseLifeSound = new Audio("loselife.wav");
+    var wonRoundSound = new Audio("wonround.mp3");
+    var loopSound = new Audio('TRexMamboSun.mp3');
+
+    var bricks;
+    
+    function getSineOfAngleInDegrees(angleInDegrees) {
+      return Math.sin((angleInDegrees/360) * 2 * Math.PI);
+    }
+    
+    function getCosineOfAngleInDegrees(angleInDegrees) {
+      return Math.cos((angleInDegrees/360) * 2 * Math.PI);
+    }
+
+    function initLives() {
+      lives = 5;
+    }
+    
+    function initScore() {
+      score = 0;
+    }
+    
+    function initLevel() {
+      level = 0;
+    }
+
+    function noBricksLeft() {
+        for (var i = 0; i < bricks.length; i++) {
+            for (var j = 0; j < bricks[i].length; j++) {
+                if (bricks[i][j].isVisible()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // iterate through the bricks array and draw each brick using drawBrick()
+    function drawBricks(){
+        for (var i = 0; i < bricks.length; i++) {
+            for (var j = 0; j < bricks[i].length; j++) {
+              bricks[i][j].draw();
+            }
+        }
+    }
+
+    function loopAudio() {
+      // http://stackoverflow.com/questions/3273552/html5-audio-looping  see answer by mgiuca.
+      if (typeof loopSound.loop == 'boolean')
+      {
+          loopSound.loop = true;
+      }
+      else
+      {
+        loopSound.addEventListener('ended', function() {
+            this.currentTime = 0;
+            this.play();
+        }, false);
+      }
+      loopSound.play();
+    }
+
+    function drawScoreBoard(){
+        context.fillStyle = DEFAULT_TEXT_COLOR;
+        context.fillText('Score:'+ score, 7, canvas.height-7);
+        context.fillText('Level:'+ (level + 1), canvas.width/2 - 40, canvas.height-7);
+        context.fillText('Lives:'+ lives, canvas.width - 100, canvas.height-7);
+    } 
+    
+    function drawMessage() {
+      if (! message) {
+        return
+      }
+      
+      context.fillStyle = 'rgb(0,255,0)';
+      context.fillText(message, 70, canvas.height/2);
+    }
+    
+    function drawInstructions() {
+      context.fillStyle = 'rgb(0,255,0)';
+      var ins = 'p - play/replay';
+      var lineHeight = 30;
+      var x = 20;
+      context.fillText(ins, x, canvas.height/2 - lineHeight);
+      ins = 'spacebar - pause/resume';
+      context.fillText(ins, x, canvas.height/2 );
+      ins = 'm - music on/off';
+      context.fillText(ins, x, canvas.height/2 + lineHeight);
+      ins = 'Use arrow keys to move paddle';
+      context.fillText(ins, x, canvas.height/2 + 3 * lineHeight);
+    }
+    
+    function log(msg) {
+      if (debug) {
+        console.log(msg);
+      }
+    }
+    
+    function collisionXWithBricks(){
+        var hit = false;   
+        for (var row = 0; row < bricks.length; row++) {
+            for (var col = 0; col < bricks[row].length; col++) {
+              var b = bricks[row][col];
+                if (! b.isVisible()) { 
+                  continue;
+                }
+
+                if (
+                    // barely touching from left
+                    ((ball.x + ball.dx + ball.r >= b.x) &&
+                    (ball.x + ball.r <= b.x))
+                    ||
+                    // barely touching from right
+                    ((ball.x + ball.dx - ball.r <= b.x + BRICK_WIDTH)&&
+                    (ball.x - ball.r >= b.x + BRICK_WIDTH))
+                    ){     
+                    if ((ball.y + ball.dy - ball.r <= b.y + BRICK_HEIGHT) &&
+                        (ball.y + ball.dy + ball.r >= b.y)) {
+                      handleBrickHit(b);
+                      hit = true;
+                    }
+                }
+            }
+        }
+        
+        return hit;
+    }
+
+    function collisionYWithBricks(){
+        var hit = false;
+        for (var row = 0; row < bricks.length; row++) {
+          for (var col = 0; col < bricks[row].length; col++) {
+            var b = bricks[row][col];
+         
+            if (! b.isVisible()) {
+              continue;
+            }
+            
+            if (
+                // barely touching from below
+                ((ball.y + ball.dy - ball.r <= b.y + BRICK_HEIGHT) &&
+                (ball.y - ball.r >= b.y + BRICK_HEIGHT))
+                ||
+                // barely touching from above
+                ((ball.y + ball.dy + ball.r >= b.y) &&
+                (ball.y + ball.r <= b.y ))){
+                if (ball.x + ball.dx + ball.r >= b.x &&
+                    ball.x + ball.dx - ball.r <= b.x + BRICK_WIDTH) {
+                    handleBrickHit(b);
+                    hit = true;
+                }                      
+            }
+          }
+        }
+        
+        return hit;
+    }
+    
+    function handleBrickHit(b) {
+      b.hit();
+      if (b.isVisible()) {
+        score += 2;
+      }
+      else {
+        score += 5;
+        breakingSound.play();
+      }
+    }
+
+    function restartGame() {
+        initLevel();
+        initScore();
+        initLives();
+        message = "";
+        initBall(level);
+        initBricks();
+        initPaddle();
+        paddle.moveType = 'NONE';
+        paddle.dx = 0;
+        loopSound.play(); 
+    }
+    
+    function togglePause() {
+      pause = ! pause;
+      if (pause) {
+        loopSound.pause();
+        } else {
+        loopSound.play();
+      }
+    }
+
+    function initGame(){
+        initLives();
+        initBall(level);
+        initBricks();
+        initPaddle();
+        
+        ball.draw();
+        paddle.draw();
+        drawBricks();
+        drawInstructions();
+        drawScoreBoard();
+
+        paddle.moveType = 'NONE';
+        paddle.dx = 0;
+
+        // Start Tracking Keystokes
+        $(document).keydown(function(evt) {
+            if (evt.keyCode == 39) {
+                paddle.moveType = 'RIGHT';
+            } else if (evt.keyCode == 37){
+                paddle.moveType = 'LEFT';
+            }
+        });        
+
+        $(document).keyup(function(evt) {
+            if (evt.keyCode == 39 || evt.keyCode == 37) {
+                paddle.moveType = 'NONE';
+            }
+        });        
+
+        $(document).keydown(function(evt) {
+            if (evt.keyCode == 32) { // spacebar to pause/resume
+                togglePause();
+            }
+        }); 
+        
+        $(document).keydown(function(evt) {
+            if (evt.keyCode == 76) { // 'l' key for lose life
+                loseLife();
+            }
+        }); 
+
+        $(document).keydown(function(evt) {
+            if (evt.keyCode == 87) { // 'w' key for win round (next level)
+                wonRound();
+            }
+        }); 
+        
+        $(document).keydown(function(evt) {
+            if (evt.keyCode == 82) { // 'r' key for restart game
+                restartGame();
+            }
+        }); 
+
+        $(document).keydown(function(evt) {
+            if (evt.keyCode == 77) { // 'm' key for music on/off (or mute on/off)
+                toggleMute();
+            }
+        });
+        
+        $(document).keydown(function(evt) {
+            if (evt.keyCode == 80) { // 'p' key for play game
+                play();
+            }
+        }); 
+         
+    }
+    
+    function play() {
+        loopAudio();
+        setInterval(animate, eventLoopDelay);
+    }
+    
+    function toggleMute() {
+      if (loopSound.paused) {
+        loopSound.play();
+      } else { 
+        loopSound.pause();
+      }
+    }
+    
+    function nextLevel() {
+      message = "";
+      level++;
+      
+      initBricks();
+      initBall(level);
+      ball.show = true;
+      wonRoundInProgress = false;
+    }
+    
+    function initBricks() {
+      bricks = [];
+      for (var row = 0; row < BRICK_ROWS; row++) {
+        bricks[row] = [];
+        for (var column = 0; column < BRICK_COLS; column++) {
+          bricks[row][column] = new Brick();
+          bricks[row][column].init(row, column, getColorForBrickRow(row), BRICK_TOP)
+        }
+      }
+    }
+    
+    function getColorForBrickRow(row) {
+      if (row == 0) {
+        return 'rgb(255,0,0)';
+      } else if (row == 1) {
+        return 'rgb(0,255,0)';
+      } else {
+        return 'rgb(0,0,255)';
+      }
+    }
+    
+    function animate () {
+        if (pause) {
+            return;
+        }
+        
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        drawBricks();
+        drawScoreBoard();
+        drawMessage();
+
+        
+        if (ball.show) {
+          ball.draw();  
+        }
+
+        paddle.draw();
+        
+        if (! wonRoundInProgress) {
+          ball.move(); 
+        }
+        
+        paddle.move();
+
+        if (noBricksLeft() && ! wonRoundInProgress) {
+            wonRound();
+        }
+    }
+    
+    function loseLife() {
+      if (lives > 0) {
+        lives--;
+      }
+      loseLifeSound.play();
+      ball.show = false;
+      ball.dx = 0;
+      ball.dy = 0;
+      if (lives <= 0) {
+          endGame();
+      }
+      else {
+        setTimeout(startNextLife, 1000);
+      }
+    }    
+    
+    function startNextLife() {
+      message = "";
+      initBall(level);
+    }
+    
+    function wonRound() {
+        wonRoundInProgress = true;
+        wonRoundSound.play();
+        message = "NICE JOB !!";
+        ball.show = false;
+        ball.dx = 0;
+        ball.dx = 0;
+        setTimeout(nextLevel, 2000)
+    }
+
+    function endGame() {
+        message = "That's All Folks!!";
+        ball.show = false;
+        loopSound.pause();
+        //clearInterval(gameLoop);
+    }
+    
+    function Paddle() {
+    }
+    
+    function initPaddle() {
+      paddle = new Paddle();
+      paddle.x = INITIAL_PADDLE_X;
+      paddle.y = INITIAL_PADDLE_Y;
+      paddle.h = PADDLE_HEIGHT;
+      paddle.w = PADDLE_WIDTH;
+      paddle.speed = PADDLE_SPEED;
+      paddle.dx = INITIAL_PADDLE_DX;
+      paddle.moveType = INITIAL_PADDLE_MOVE_TYPE;
+      paddle.show = true;
+    }
+    
+    Paddle.prototype.draw = function() {
+      context.beginPath();
+      context.fillStyle = 'rgb(255,255,255)';
+      context.fillRect(this.x, this.y, this.w, this.h);
+      context.closePath();
+    };
+    
+    Paddle.prototype.move = function() {
+      if (this.moveType == 'LEFT') {
+          this.dx = -this.speed;
+      } else if (this.moveType == 'RIGHT') {
+          this.dx = this.speed;
+      } else {
+          this.dx = 0;
+      }
+      // If paddle reaches the side of the screen, then don't let it move any further
+      if (this.x + this.dx < 0 || this.x + this.dx + this.w > canvas.width) {
+          this.dx = 0;
+      }
+      
+      this.x = this.x + this.dx;
+    };
+    
+    Paddle.prototype.isMoving = function() {
+      // Use this.dx instead of this.moveType because if the paddle is against the left/right wall then it will not be moving even though this.move will be trying to move it.  
+      return this.dx != 0;
+    };
+    
+    function Ball() {
+    }
+    
+    function initBall(level) {
+      ball = new Ball();
+      ball.x = INITIAL_BALL_X;
+      ball.y = INITIAL_BALL_Y;
+      ball.r = BALL_RADIUS;
+      ball.angle = INITIAL_BALL_ANGLE;
+      ball.speed = canvas.width / INITIAL_BALL_TIME_LEFT_TO_RIGHT;
+      ball.speed = ball.speed * Math.min(1 + (0.1 * level), 1.3);
+      ball.PixelDistancePerUpdate = ball.speed * timeForOneUpdate;
+      ball.updateDxDyFromAngle(ball.angle);
+      ball.show = true;
+    }
+    
+    Ball.prototype.updateDxDyFromAngle = function(angle) {
+      this.dx = this.PixelDistancePerUpdate * getCosineOfAngleInDegrees(this.angle);
+      this.dy = this.PixelDistancePerUpdate * getSineOfAngleInDegrees(this.angle);
+    };
+    
+    Ball.prototype.updateAngleFromDxDy = function() {
+      this.angle = Math.atan2(this.dy, this.dx) * 360 / (2 * Math.PI);
+    }
+    
+    Ball.prototype.incrementAngle = function(deltaAngle) {
+      this.updateAngleFromDxDy();
+      this.angle += deltaAngle;
+      this.updateDxDyFromAngle();
+    }  
+    
+    Ball.prototype.draw = function() {
+      // Context.beginPath when you draw primitive shapes
+      context.beginPath();
+
+      // Draw arc at center 
+      // From 0 to 2xPI radians (full circle)
+      context.arc(this.x, this.y, this.r, 0, Math.PI * 2, true);
+
+      // Fill up the path that you just drew
+      context.fillStyle = this.color;
+      context.fill();          
+      context.closePath();
+    };
+    
+    Ball.prototype.move = function() {
+        // If the bottom of the ball touches the bottom of the screen then lose a life.
+        if (this.y + this.dy + this.r > canvas.height) {
+          log("lose life");
+          loseLife();
+          return;
+        }
+
+        if (this.hitTop()) { 
+          this.dy = Math.abs(this.dy);
+          bouncingSound.play();
+          log("ball hit top");
+        } else if (collisionYWithBricks()) {
+          this.dy = -this.dy;
+          bouncingSound.play();
+          log("collision Y with bricks");
+        } else if (this.hitPaddle()) {
+          this.dy = -Math.abs(this.dy);
+          if (paddle.dx < 0) {
+            // this.incrementAngle(20); 
+          } else if (paddle.dx > 0) {
+            // this.incrementAngle(-20);
+          }
+          bouncingSound.play();
+          log("paddle bounce");
+        }            
+
+        if (this.hitLeftWall() || this.hitRightWall() || collisionXWithBricks()) {  
+            this.dx = -this.dx;
+            bouncingSound.play();
+        }
+
+        this.x = this.x + this.dx;
+        this.y = this.y + this.dy;
+    };
+    
+    Ball.prototype.hitTop = function() {
+      return this.dy < 0 && this.y - this.r + this.dy < 0;      
+    };
+    
+    Ball.prototype.hitLeftWall = function() {
+      return (this.x - this.r + this.dx < 0 && this.dx < 0);
+    };
+    
+    Ball.prototype.hitRightWall = function() {
+      return this.x + this.r + this.dx > canvas.width && this.dx > 0;
+    };
+    
+    Ball.prototype.hitPaddle = function() {
+      return (this.dy > 0 && (this.y + this.r + this.dy >= paddle.y)) &&  // paddle bounce
+             (this.y + this.r + this.dy - paddle.y < (PADDLE_HEIGHT/2)) && // heuristic to prevent bounce if ball passes beneath paddle
+             (this.x + this.dx >= paddle.x && this.x + this.dx <= paddle.x + paddle.w)
+    };
+
+    function Brick() {
+    }
+    
+    Brick.prototype.draw = function() {
+      if (this.displayType == 0) {
+        return;
+      }
+      
+      context.beginPath();
+      context.fillStyle = this.color;
+      context.fillRect(this.x, this.y, this.width, this.height);
+      context.closePath();
+    };
+    
+    Brick.prototype.init = function(row, column, color, yOffset) {
+      this.x = column * BRICK_WIDTH;
+      this.y = yOffset + (row * BRICK_HEIGHT);
+      this.height = BRICK_HEIGHT;
+      this.width = BRICK_WIDTH;
+      this.displayType = 1; 
+      this.color = color;
+    };
+    
+    Brick.prototype.hit = function() {
+      if (this.displayType > 0) {
+        this.displayType--;
+      }
+    };
+    
+    Brick.prototype.isVisible = function() { 
+      return this.displayType > 0;
+    };
+
+    initGame();
+}
+
+    </script>
+  </head>
+  <body>   
+    <style type="text/css">
+      canvas {
+        border:1px solid black;
+        background-color: rgba(0,0,0,1.0);
+        /* opacity: 0.5; */
+      }
+      
+      body {
+        /* background-image: url('stchristophe.jpg'); */ 
+        background-image: url('chateaudanjony.jpg');
+        background-repeat: no-repeat;
+        background-size: cover;
+      }
+    </style>
+    <canvas id="canvas" width="400" height="500">
+      Sorry, your browser does not support the HTML5 Canvas feature :-(
+    </canvas>  
+  </body>
+</html>

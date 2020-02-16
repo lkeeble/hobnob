@@ -1,0 +1,2 @@
+Reduce width of input controls.
+

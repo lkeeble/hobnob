@@ -1,0 +1,63 @@
+/* BEGIN CSS reset See: https://alligator.io/css/minimal-css-reset/ */
+html {
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body, h1, h2, h3, h4, h5, h6, p, ol, ul {
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+}
+
+ol, ul {
+  list-style: none;
+}
+
+body {
+  background-image: url("chateau_danjony.jpg");
+  /*  background-repeat: no-repeat; */
+  background-size: auto;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+/* END CSS reset */
+
+p, li {
+	padding-top: 10px;
+}
+
+.content {
+  /* center the content in the middle of the browser window */
+  margin: 0 auto;
+  margin-top: 20px; 
+  font-family: sans-serif;
+	background-color: #73cff8;
+  width: 1024px;
+  padding: 10px;
+  border: 2px solid #ff0080;
+}
+
+.header {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #ff0080;
+  background-color: lightgreen;  
+}
+
+.header a {
+  padding-left: 20px;
+}
+
+#hobnob_title {
+  font-size: 26px;
+  color: blue;
+  text-align: center;
+}
