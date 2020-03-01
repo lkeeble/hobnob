@@ -80,7 +80,7 @@ Checklist for Buying  a Used Car
 <p><b><br />
 </b></p>
 
-<p>Places to look in order of preference:</p>
+<p>Places to look in order of preference:</p> 
 
 <ol ><li><p>Trusted friends and family. You will have good information on the car's condition. Less likely to get completely screwed.</p>
 
