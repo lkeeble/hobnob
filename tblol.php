@@ -11,7 +11,7 @@ The big list of links
 <font color="green">
 Please feel free to add quirky/interesting websites to this list by changing the file yourself, it's on Github.<br> 
 I will commit your change if it's constructive. Links to big commercial websites such as yahoo.com won't be included.<br>
-The path is github is /lkeeble/hobnob/tblol.php. Username is lkeeble, repository name is hobnob, filename is tblol.php.
+The path on github is /lkeeble/hobnob/tblol.php. Username is lkeeble, repository name is hobnob, filename is tblol.php.
 </font>
 </b>
 </p>  
