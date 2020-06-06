@@ -20,7 +20,7 @@ Home Page
 </p>
 
 <p>
-<a href="useful_links.php">Useful/Fun Links</a><br> 
+    <a href="tblol.php">The big list of links</a>
 </p>
 
 <p>

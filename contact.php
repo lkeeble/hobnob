@@ -6,8 +6,8 @@ include("header.php");
 Contact Info
 </h1>
 <p>
-Louis Keeble 
-Email:(first letter of my first name plus my last name) (at) yahoo.com
+Louis Keeble <br>
+Email:lkeeble@yahoo.com
 </p>
 
 <?php
