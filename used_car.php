@@ -247,6 +247,11 @@ Checklist for Buying  a Used Car
 
 <p>[ ] Check all interior trim, including the roof trim.</p>
 
+<p> [ ] Use the key provided by the owner to open/close the car door(s) and trunk. Use the keyfob to open/close the car doors and trunk. 
+    Ask the seller how many keys/keyfobs come with the car. It can cost $200 or more to make an extra set of keys so this is important. 
+    If the key doesn't physically open the driver's side door this could leave you without an easy way to get into the car if the keyfob stopped working. It's expensive to fix this problem.
+</p> 
+
 <p>[ ] Condition of front seats?</p>
 
 <p>[ ] Condition of rear seats, and rear bench if included? </p>
