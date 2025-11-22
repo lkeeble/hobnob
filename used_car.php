@@ -239,7 +239,7 @@ Checklist for Buying  a Used Car
 
 <p>[ ] Look from about 15 feet in front and behind, make sure wheels on both sides are at the same location, left and right side match.</p>
 
-<p>[ ] Check body panels for paint mismatch or bad paint job. </p>
+<p>[ ] Check body panels for paint mismatch or bad paint job.</p>
 
 <p>[ ] Check body panel gaps to make sure they are all consistent. If not, suspect serious accident, walk away. </p>
 
